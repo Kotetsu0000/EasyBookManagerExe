@@ -162,3 +162,4 @@ cython_debug/
 config.ini
 *.bat
 ignore/*
+*/.DS_Store
