@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"  # バージョンタグのみに対してトリガー
-    workflow_dispatch:  # 手動実行のトリガー
 
 jobs:
   build:
@@ -57,14 +56,13 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            EasyBookManager
+            EasyBookManager Version ${{ github.ref }}
           draft: false
           prerelease: false
 
       - name: Zip Artifacts
         run: |
-          ls
-          zip -r EasyBookManager.zip EasyBookManager
+          zip -r EasyBookManager_win.zip EasyBookManager
 
       - name: Append Binaly
         uses: actions/upload-release-asset@v1
@@ -72,6 +70,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./EasyBookManager.zip
-          asset_name: EasyBookManager.zip
+          asset_path: ./EasyBookManager_win.zip
+          asset_name: EasyBookManager_win.zip
           asset_content_type: application/zip
