@@ -1,21 +1,5 @@
 """
-python -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-
-pip install python-dotenv
-echo "SECRET_KEY=$(openssl rand -base64 32)" > .env
-
-pip install sqlalchemy pandas customtkinter Pillow pyinstaller pyinstaller_versionfile chardet
-pip install git+https://github.com/Kotetsu0000/book_search_api.git
-
-pip install git+https://github.com/JohnDevlopment/CTkTreeview.git
-
-バーコードの読み取り機能を追加する場合
-pip install opencv-contrib-python
-
 icon Color rgb(36, 93, 178)
-
 """
 
 import json
