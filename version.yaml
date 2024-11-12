@@ -1,0 +1,12 @@
+Version: 0.0.1
+CompanyName:
+FileDescription: EasyBookManager
+InternalName: EasyBookManager
+LegalCopyright: Copyright (C) 2022-2024 Kotetsu
+OriginalFilename: EasyBookManager.exe
+ProductName: EasyBookManager
+Translation:
+  - langID: 0
+    charsetID: 1200
+  - langID: 1041
+    charsetID: 1200
