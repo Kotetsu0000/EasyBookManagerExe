@@ -62,6 +62,7 @@ jobs:
 
       - name: Zip Artifacts
         run: |
+          ls
           zip -r EasyBookManager.zip EasyBookManager
 
       - name: Append Binaly
