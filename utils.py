@@ -58,10 +58,10 @@ class Database:
             self.config['BookSearch'] = {}
             self.set_config('BookSearch', 'search_timeout', '5')
             self.set_config('BookSearch', 'openbd', 'True')
-            self.set_config('BookSearch', 'open_library', 'False')
+            self.set_config('BookSearch', 'open_library', 'True')
             self.set_config('BookSearch', 'google_books', 'True')
             self.set_config('BookSearch', 'ndl', 'True')
-            self.set_config('BookSearch', 'search_order', 'ndl,google_books,openbd,open_library')
+            self.set_config('BookSearch', 'search_order', 'ndl,open_library,google_books,openbd')
 
         self.book_search_apis = {
             "openbd": OpenBDAPI,
@@ -189,7 +189,22 @@ class Database:
                             data_list.append(openbd_data)
                 elif api_name == 'open_library':
                     self.logger.info(f"Searching book Open Library: isbn_10={isbn_10}, isbn_13={isbn_13}")
-                    # 現在アクセスできないので未実装
+                    for isbn in [isbn_10, isbn_13]:
+                        data = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).isbn_search(isbn)
+                        if data is not None:
+                            authors = []
+                            for author in data.get('authors',[]):
+                                if 'key' in author.keys():
+                                    author_info = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).author_search(author['key'])
+                                    if 'name' in author_info.keys():
+                                        authors.append(author_info.get('name',''))
+                            open_library_data = {
+                                'title': data.get('title',''),
+                                'author': ', '.join(authors),
+                                'publisher': data.get('publishers',[])[0],
+                                'subject': ', '.join(data.get('subjects',[])),
+                            }
+                            data_list.append(open_library_data)
                     pass
                 else:
                     assert Exception(f"Invalid API name: {api_name}")
@@ -430,11 +445,17 @@ if __name__ == "__main__":
         '1565924649',
         '9784101357522',
     ]
+    import json
+    api = OpenLibraryAPI()
     for isbn in isbn_list:
         data = db.isbn_search_book(isbn)
         if data is not None:
             print(data)
             db.register_book(data)
+        book = api.isbn_search(isbn)
+        print(book)
+        with open(f"OpenLibraryAPI_{isbn}.json", "w", encoding="utf-8") as f:
+            json.dump(book, f, ensure_ascii=False, indent=4)
     
     '''import json
     apis ={
