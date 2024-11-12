@@ -1,0 +1,55 @@
+name: Build and Release Windows Executable
+
+on:
+  push:
+    tags:
+      - "v*.*.*"  # バージョンタグのみに対してトリガー
+    workflow_dispatch:  # 手動実行のトリガー
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v2
+
+      - name: Python環境のセットアップ
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: 依存関係をインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install sqlalchemy pandas customtkinter Pillow pyinstaller pyinstaller_versionfile chardet
+          pip install git+https://github.com/Kotetsu0000/book_search_api.git
+
+      - name: バージョンファイルを生成
+        run: create-version-file version.yaml --outfile version_info.txt
+
+      - name: PyInstallerで実行ファイルを生成
+        run: |
+          pyinstaller EasyBookManager.py --noconsole --icon=images/favicon.ico --add-data "images/*:./images/" --version-file version_info.txt --clean
+
+      - name: Artifactsをアップロード
+        uses: actions/upload-artifact@v2
+        with:
+          name: EasyBookManager
+          path: ./dist/EasyBookManager
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v2
+
+      - name: リリースを作成
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          artifacts: ./dist/EasyBookManager
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
