@@ -163,3 +163,4 @@ config.ini
 *.bat
 ignore/*
 */.DS_Store
+.DS_Store
