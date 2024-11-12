@@ -363,6 +363,8 @@ class MainWindow(ctk.CTk):
         file_path = ctk.filedialog.asksaveasfilename(filetypes=[('CSVファイル', '*.csv')])
         if file_path:
             try:
+                if not file_path.endswith('.csv'):
+                    file_path += '.csv'
                 book_pd = pd.DataFrame(self.db.create_download_data())
                 book_pd.to_csv(file_path, index=False, encoding=encoding)
                 messagebox.showinfo('エクスポート完了', 'CSVのエクスポートが完了しました')
