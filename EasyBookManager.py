@@ -30,7 +30,7 @@ class MainWindow(ctk.CTk):
         window_height = 600
         self.geometry(f'{window_width}x{window_height}+{w//2-window_width//2}+{h//2-window_height//2}')
 
-        self.iconbitmap(temp_path('./favicon.ico'))
+        self.iconbitmap(temp_path('images/favicon.ico'))
 
         self.db = Database()
         
@@ -378,7 +378,8 @@ class ChangeBook(ctk.CTkToplevel):
         window_height = 330
         self.geometry(f'{window_width}x{window_height}+{w//2-window_width//2}+{h//2-window_height//2}')
         self.title('本の情報変更')
-        self.after(201, lambda: self.iconbitmap(temp_path('./favicon.ico')))
+        self.iconbitmap(temp_path('images/favicon.ico'))
+        self.after(201, lambda: self.iconbitmap(temp_path('images/favicon.ico')))
         self.resizable(False, False)
 
         self.master = master
@@ -475,7 +476,8 @@ class AddBook(ctk.CTkToplevel):
         window_height = 330
         self.geometry(f'{window_width}x{window_height}+{w//2-window_width//2}+{h//2-window_height//2}')
         self.title('本の追加')
-        self.after(201, lambda: self.iconbitmap(temp_path('./favicon.ico')))
+        self.iconbitmap(temp_path('images/favicon.ico'))
+        self.after(201, lambda: self.iconbitmap(temp_path('images/favicon.ico')))
         self.resizable(False, False)
         self.attributes('-topmost', True)
 
@@ -569,7 +571,8 @@ class WaitBookSearch(ctk.CTkToplevel):
         window_height = 100
         self.geometry(f'{window_width}x{window_height}+{w//2-window_width//2}+{h//2-window_height//2}')
         self.title('検索中')
-        self.after(201, lambda: self.iconbitmap(temp_path('./favicon.ico')))
+        self.iconbitmap(temp_path('images/favicon.ico'))
+        self.after(201, lambda: self.iconbitmap(temp_path('images/favicon.ico')))
         self.resizable(False, False)
 
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
