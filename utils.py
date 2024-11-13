@@ -17,6 +17,7 @@ DEFAULT_SEARCH_VALUE = {
     "publisher": "",
     "category": "",
     "subject": "",
+    "remarks": "",
 }
 
 # データベースモデルの定義
@@ -31,7 +32,9 @@ class Book(BASE):
     title = Column(String)                                              # タイトル
     author = Column(String)                                             # 著者
     publisher = Column(String)                                          # 出版社
-    subject = Column(String)                                            # サブジェクト
+    subject = Column(String)                                            # 件名標目
+    number = Column(String)                                             # 所持数
+    remarks = Column(String)                                            # 備考
     place = Column(String)                                              # 保管場所
     created_at = Column(DateTime)                                       # 作成日時
     updated_at = Column(DateTime)                                       # 更新日時
@@ -126,7 +129,7 @@ class Database:
             if self.get_config('BookSearch', api_name) == 'True':
                 if api_name == 'ndl':
                     self.logger.info(f"Searching book NDL: isbn_10={isbn_10}, isbn_13={isbn_13}")
-                    for isbn in [isbn_10, isbn_13]:
+                    for isbn in [isbn_13]:
                         data = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).isbn_search(isbn)
                         record_data = data.get('searchRetrieveResponse',{}).get('records',{}).get('record',{})
                         if isinstance(record_data, list):
@@ -154,7 +157,7 @@ class Database:
                         data_list.append(ndl_data)
                 elif api_name == 'google_books':
                     self.logger.info(f"Searching book Google Books: isbn_10={isbn_10}, isbn_13={isbn_13}")
-                    for isbn in [isbn_10, isbn_13]:
+                    for isbn in [isbn_13]:
                         data = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).isbn_search(isbn)
                         if data is not None:
                             items = data.get('items',[])
@@ -168,7 +171,7 @@ class Database:
                                 data_list.append(google_books_data)
                 elif api_name == 'openbd':
                     self.logger.info(f"Searching book OpenBD: isbn_10={isbn_10}, isbn_13={isbn_13}")
-                    for isbn in [isbn_10, isbn_13]:
+                    for isbn in [isbn_13]:
                         data = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).isbn_search(isbn)
                         
                         if data[0] is not None and len(data) > 0:
@@ -189,7 +192,7 @@ class Database:
                             data_list.append(openbd_data)
                 elif api_name == 'open_library':
                     self.logger.info(f"Searching book Open Library: isbn_10={isbn_10}, isbn_13={isbn_13}")
-                    for isbn in [isbn_10, isbn_13]:
+                    for isbn in [isbn_13]:
                         data = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).isbn_search(isbn)
                         if data is not None:
                             authors = []
@@ -260,7 +263,7 @@ class Database:
         return True
 
     # 本の検索を行う
-    def search_book(self, isbn: str='', title: str='', author: str='', publisher: str='', subject: str='', place: str='') -> list:
+    def search_book(self, isbn: str='', title: str='', author: str='', publisher: str='', subject: str='', number: str='', remarks: str='', place: str='') -> list[dict]:
         """本の検索を行う
         
         Args:
@@ -280,7 +283,7 @@ class Database:
             if len(isbn) > 0:
                 isbn_10, isbn_13 = calc_both_isbn(isbn)
                 search_result = session.query(Book).filter(Book.isbn_10 == isbn_10).all()
-            elif len(title)==0 and len(author)==0 and len(publisher)==0 and len(subject)==0 and len(place)==0:
+            elif len(title)==0 and len(author)==0 and len(publisher)==0 and len(subject)==0 and len(number)==0 and len(remarks)==0 and len(place)==0:
                 search_result = session.query(Book).all()
             else:
                 search_conditions = []
@@ -292,6 +295,10 @@ class Database:
                     search_conditions.append(Book.publisher.like(f"%{publisher}%"))
                 if len(subject) > 0:
                     search_conditions.append(Book.subject.like(f"%{subject}%"))
+                if len(number) > 0:
+                    search_conditions.append(Book.number.like(f"%{number}%"))
+                if len(remarks) > 0:
+                    search_conditions.append(Book.remarks.like(f"%{remarks}%"))
                 if len(place) > 0:
                     search_conditions.append(Book.place.like(f"%{place}%"))
                 if len(search_conditions) > 0:
@@ -308,7 +315,7 @@ class Database:
         return result
         
     # 本の情報を更新する
-    def update_book(self, isbn_10:str, isbn_13:str, title:str, author:str, publisher:str, subject:str, place:str) -> bool:
+    def update_book(self, isbn_10:str, isbn_13:str, title:str, author:str, publisher:str, subject:str, number:str, remarks:str, place:str) -> bool:
         """本の情報を更新する
         
         Args:
@@ -335,6 +342,8 @@ class Database:
             book.author = author
             book.publisher = publisher
             book.subject = subject
+            book.number = number
+            book.remarks = remarks
             book.place = place
             book.updated_at = datetime.now()
             session.commit()
@@ -419,61 +428,7 @@ class Database:
         else:
             self.logger.error(f"Failed to create download data")
             return None
-
-#def image_to_isbn(image:np.ndarray):
-    """画像からISBNを取得する
-    
-    Args:
-        image (np.ndarray): 画像データ
-
-    Returns:
-    """
-    #bd = cv2.barcode.BarcodeDetector()
-    #retval, isbns, _, _ = bd.detectAndDecodeMulti(image)
-    #if not retval:
-    #    return None
-    #return list(isbns)
     
 def is_composed_of(s: str, allowed_chars: str) -> bool:
     return all(char in allowed_chars for char in s)
-    
 
-if __name__ == "__main__":
-    db = Database()
-    isbn_list = [
-        '4088725093',
-        '1565924649',
-        '9784101357522',
-    ]
-    import json
-    api = OpenLibraryAPI()
-    for isbn in isbn_list:
-        data = db.isbn_search_book(isbn)
-        if data is not None:
-            print(data)
-            db.register_book(data)
-        book = api.isbn_search(isbn)
-        print(book)
-        with open(f"OpenLibraryAPI_{isbn}.json", "w", encoding="utf-8") as f:
-            json.dump(book, f, ensure_ascii=False, indent=4)
-    
-    '''import json
-    apis ={
-        "OpenBDAPI": OpenBDAPI(),
-        "OpenLibraryAPI": OpenLibraryAPI(),
-        "GoogleBooksAPI": GoogleBooksAPI(),
-        "NDLAPI": NDLAPI(),
-    }
-    for key, api in apis.items():
-        isbn = '1565924649'
-        isbn = '4814400225'
-        isbn = '4003315812'
-        #data = api.isbn_search("4088725093")
-        #data = api.isbn_search("1565924649")
-        #data = api.isbn_search("9784101357522")
-        #data = api.isbn_search("4088725093")
-        data = api.isbn_search(isbn)
-        with open(f"{key}_{isbn}.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-    
-    print(db.search_book())'''
