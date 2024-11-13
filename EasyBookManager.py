@@ -350,8 +350,12 @@ class MainWindow(ctk.CTk):
                                 'subject': row['件名標目'],
                                 'place': row['保管場所'],
                                 'remarks': row.get('備考', ''),
-                                'number': row.get('所持数', ''),
                             }
+                            try:
+                                book_info['number'] = str(int(row['所持数']))
+                            except:
+                                book_info['number'] = ''
+
                             book_list.append(book_info)
 
                     for book_info in book_list:
@@ -361,6 +365,7 @@ class MainWindow(ctk.CTk):
                 else:
                     messagebox.showerror('インポートエラー', 'CSVのインポートに失敗しました')
             except:
+                print(traceback.format_exc())
                 messagebox.showerror('インポートエラー', 'CSVのインポートに失敗しました')
     
     def export_csv(self, encoding):
