@@ -174,8 +174,8 @@ class MainWindow(ctk.CTk):
 
 
 
-        self.book_table_colmuns = ['タイトル', '著者', '出版社', '件名標目', '保管場所']
-        self.width_list = [200, 100, 100, 100, 50]
+        self.book_table_colmuns = ['タイトル', '著者', '出版社', '件名標目', '保管場所', '備考', '所持数']
+        self.width_list = [200, 100, 100, 100, 50, 50, 50]
         self.book_table = ttk.Treeview(self.search_frame, columns=self.book_table_colmuns, show='headings')
         for column, width in zip(self.book_table_colmuns, self.width_list):
             self.book_table.heading(column, text=column)
@@ -228,7 +228,7 @@ class MainWindow(ctk.CTk):
     def update_book_table(self, book_info):
         self.book_table.delete(*self.book_table.get_children())
         for book in book_info:
-            self.book_table.insert("", "end", id=f"{book['isbn_10']}", values=[book['title'], book['author'], book['publisher'], book['subject'], book['place']], tags=("book"))
+            self.book_table.insert("", "end", id=f"{book['isbn_10']}", values=[book['title'], book['author'], book['publisher'], book['subject'], book['place'], book['remarks'], book['number']])
 
     def menu_on_off(self):
         if self.menu_frame.winfo_ismapped():# メニューが表示されている場合
@@ -322,8 +322,10 @@ class MainWindow(ctk.CTk):
         publisher = item[2]
         subject = item[3]
         place = item[4]
+        remark = item[5]
+        number = item[6]
         print(title, author, publisher, subject, place)
-        ChangeBook(self, isbn, title, author, publisher, subject, place)
+        ChangeBook(self, isbn, title, author, publisher, subject, place, remark, number)
 
     def import_csv(self):
         file_path = ctk.filedialog.askopenfilename(filetypes=[('CSVファイル', '*.csv')])
@@ -347,6 +349,8 @@ class MainWindow(ctk.CTk):
                                 'publisher': row['出版社'],
                                 'subject': row['件名標目'],
                                 'place': row['保管場所'],
+                                'remarks': row.get('備考', ''),
+                                'number': row.get('所持数', ''),
                             }
                             book_list.append(book_info)
 
@@ -372,12 +376,12 @@ class MainWindow(ctk.CTk):
                 messagebox.showerror('エクスポートエラー', 'CSVのエクスポートに失敗しました')
 
 class ChangeBook(ctk.CTkToplevel):
-    def __init__(self, master, isbn, title, author, publisher, subject, place):
+    def __init__(self, master, isbn, title, author, publisher, subject, place, remark, number):
         super().__init__(master)
         w = self.winfo_screenwidth()
         h = self.winfo_screenheight()
         window_width = 450
-        window_height = 330
+        window_height = 430
         self.geometry(f'{window_width}x{window_height}+{w//2-window_width//2}+{h//2-window_height//2}')
         self.title('本の情報変更')
         self.iconbitmap(temp_path('images/favicon.ico'))
@@ -391,6 +395,8 @@ class ChangeBook(ctk.CTkToplevel):
         self.publisher = publisher
         self.subject = subject
         self.place = place
+        self.remark = remark
+        self.number = number
 
         self.create_widgets()
 
@@ -443,6 +449,20 @@ class ChangeBook(ctk.CTkToplevel):
         self.place_entry.insert(0, self.place)
         self.place_entry.grid(row=6, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
 
+        self.remark_label = ctk.CTkLabel(self.base_frame, text="備考 :", font=ctk.CTkFont(size=14), anchor="w")
+        self.remark_label.grid(row=7, column=0, padx=5, pady=5)
+        self.remark_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
+        self.remark_entry.insert(0, self.remark)
+        self.remark_entry.grid(row=7, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
+
+        self.number_label = ctk.CTkLabel(self.base_frame, text="所持数 :", font=ctk.CTkFont(size=14), anchor="w")
+        self.number_label.grid(row=8, column=0, padx=5, pady=5)
+        self.number_string = tk.StringVar()
+        self.number_string.trace_add("write", self.number_check)
+        self.number_string.set(self.number)
+        self.number_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20, textvariable=self.number_string)
+        self.number_entry.grid(row=8, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
+
         self.button_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.button_frame.pack(fill=ctk.X, side=ctk.BOTTOM, pady=5)
         self.button_frame.grid_rowconfigure(0, weight=1)
@@ -459,7 +479,7 @@ class ChangeBook(ctk.CTkToplevel):
         self.cancel_button.grid(row=0, column=2, padx=5, pady=5)
 
     def change_book(self):
-        self.master.db.update_book(self.isbn_10, self.isbn_13, self.title_entry.get(), self.author_entry.get(), self.publisher_entry.get(), self.subject_entry.get(), self.place_entry.get())
+        self.master.db.update_book(self.isbn_10, self.isbn_13, self.title_entry.get(), self.author_entry.get(), self.publisher_entry.get(), self.subject_entry.get(), self.number_entry.get(), self.remark_entry.get(), self.place_entry.get())
         self.master.update_book_table(self.master.db.search_book())
         self.destroy()
 
@@ -469,13 +489,18 @@ class ChangeBook(ctk.CTkToplevel):
             self.master.update_book_table(self.master.db.search_book())
             self.destroy()
 
+    def number_check(self, *args):
+        number = self.number_string.get()
+        number = ''.join(char for char in number if char.isdigit())
+        self.number_string.set(number)
+
 class AddBook(ctk.CTkToplevel):
     def __init__(self, master, isbn_10, isbn_13, book_info):
         super().__init__(master)
         w = self.winfo_screenwidth()
         h = self.winfo_screenheight()
         window_width = 450
-        window_height = 330
+        window_height = 420
         self.geometry(f'{window_width}x{window_height}+{w//2-window_width//2}+{h//2-window_height//2}')
         self.title('本の追加')
         self.iconbitmap(temp_path('images/favicon.ico'))
@@ -492,7 +517,7 @@ class AddBook(ctk.CTkToplevel):
 
     def create_widgets(self):
         self.base_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
-        self.base_frame.pack(fill=ctk.BOTH, expand=True, padx=10, pady=5)
+        self.base_frame.pack(fill=ctk.X, padx=10, pady=5)
         self.base_frame.grid_columnconfigure(2, weight=1)
 
         self.isbn_10_label = ctk.CTkLabel(self.base_frame, text="ISBN10 :", font=ctk.CTkFont(size=14), anchor="w")
@@ -512,42 +537,54 @@ class AddBook(ctk.CTkToplevel):
         self.title_label = ctk.CTkLabel(self.base_frame, text="タイトル :", font=ctk.CTkFont(size=14), anchor="w")
         self.title_label.grid(row=2, column=0, padx=5, pady=5)
         self.title_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
-        self.title_entry.insert(0, self.book_info['title'])
+        if self.book_info:self.title_entry.insert(0, self.book_info['title'])
         self.title_entry.grid(row=2, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
 
         self.author_label = ctk.CTkLabel(self.base_frame, text="著者 :", font=ctk.CTkFont(size=14), anchor="w")
         self.author_label.grid(row=3, column=0, padx=5, pady=5)
         self.author_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
-        self.author_entry.insert(0, self.book_info['author'])
+        if self.book_info:self.author_entry.insert(0, self.book_info['author'])
         self.author_entry.grid(row=3, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
 
         self.publisher_label = ctk.CTkLabel(self.base_frame, text="出版社 :", font=ctk.CTkFont(size=14), anchor="w")
         self.publisher_label.grid(row=4, column=0, padx=5, pady=5)
         self.publisher_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
-        self.publisher_entry.insert(0, self.book_info['publisher'])
+        if self.book_info:self.publisher_entry.insert(0, self.book_info['publisher'])
         self.publisher_entry.grid(row=4, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
 
         self.subject_label = ctk.CTkLabel(self.base_frame, text="件名標目 :", font=ctk.CTkFont(size=14), anchor="w")
         self.subject_label.grid(row=5, column=0, padx=5, pady=5)
         self.subject_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
-        self.subject_entry.insert(0, self.book_info['subject'])
+        if self.book_info:self.subject_entry.insert(0, self.book_info['subject'])
         self.subject_entry.grid(row=5, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
 
         self.place_label = ctk.CTkLabel(self.base_frame, text="保管場所 :", font=ctk.CTkFont(size=14), anchor="w")
         self.place_label.grid(row=6, column=0, padx=5, pady=5)
         self.place_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
-        self.place_entry.insert(0, self.book_info['place'])
+        if self.book_info:self.place_entry.insert(0, self.book_info['place'])
         self.place_entry.grid(row=6, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
+
+        self.remark_label = ctk.CTkLabel(self.base_frame, text="備考 :", font=ctk.CTkFont(size=14), anchor="w")
+        self.remark_label.grid(row=7, column=0, padx=5, pady=5)
+        self.remark_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20)
+        self.remark_entry.grid(row=7, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
+
+        self.number_label = ctk.CTkLabel(self.base_frame, text="所持数 :", font=ctk.CTkFont(size=14), anchor="w")
+        self.number_label.grid(row=8, column=0, padx=5, pady=5)
+        self.number_string = tk.StringVar()
+        self.number_string.trace_add("write", self.number_entry_check)
+        self.number_entry = ctk.CTkEntry(self.base_frame, font=ctk.CTkFont(size=14), width=20, textvariable=self.number_string)
+        self.number_entry.grid(row=8, column=1, padx=5, pady=5, sticky='ew', columnspan=2)
 
         self.button_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.button_frame.pack(fill=ctk.X, side=ctk.BOTTOM, pady=5)
         self.button_frame.grid_rowconfigure(0, weight=1)
         self.button_frame.grid_columnconfigure(2, weight=1)
 
-        self.add_button = ctk.CTkButton(self.button_frame, text="追加", font=ctk.CTkFont(size=14), command=self.add_book, width=200)
+        self.add_button = ctk.CTkButton(self.button_frame, text="追加", font=ctk.CTkFont(size=14), command=self.add_book, width=200, height=30)
         self.add_button.grid(row=0, column=0, padx=12, pady=5)
 
-        self.cancel_button = ctk.CTkButton(self.button_frame, text="キャンセル", font=ctk.CTkFont(size=14), command=self.destroy, width=200)
+        self.cancel_button = ctk.CTkButton(self.button_frame, text="キャンセル", font=ctk.CTkFont(size=14), command=self.destroy, width=200, height=30)
         self.cancel_button.grid(row=0, column=1, padx=12, pady=5)
 
     def add_book(self):
@@ -558,11 +595,18 @@ class AddBook(ctk.CTkToplevel):
             'author': self.author_entry.get(),
             'publisher': self.publisher_entry.get(),
             'subject': self.subject_entry.get(),
+            'number': self.number_entry.get(),
+            'remarks': self.remark_entry.get(),
             'place': self.place_entry.get(),
         }
         self.master.db.register_book(book_data)
         self.master.search_book_entry_check()
         self.destroy()
+
+    def number_entry_check(self, *args):
+        number = self.number_string.get()
+        number = ''.join(char for char in number if char.isdigit())
+        self.number_string.set(number)
 
 class WaitBookSearch(ctk.CTkToplevel):
     def __init__(self, master):

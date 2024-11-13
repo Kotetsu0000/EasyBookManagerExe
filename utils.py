@@ -199,7 +199,7 @@ class Database:
                             for author in data.get('authors',[]):
                                 if 'key' in author.keys():
                                     author_info = self.book_search_apis[api_name](timeout=float(self.get_config('BookSearch', 'search_timeout'))).author_search(author['key'])
-                                    if 'name' in author_info.keys():
+                                    if author_info and 'name' in author_info.keys():
                                         authors.append(author_info.get('name',''))
                             open_library_data = {
                                 'title': data.get('title',''),
@@ -219,6 +219,8 @@ class Database:
             'author': '',
             'publisher': '',
             'subject': '',
+            'number': '',
+            'remarks': '',
             'place': '',
         }
         if len(data_list) > 0:
@@ -311,7 +313,7 @@ class Database:
         session.close()
         result = []
         for book in search_result:
-            result.append({"isbn_10": book.isbn_10, "isbn_13": book.isbn_13, "title": book.title, "author": book.author, "publisher": book.publisher, "subject": book.subject, "place": book.place})
+            result.append({"isbn_10": book.isbn_10, "isbn_13": book.isbn_13, "title": book.title, "author": book.author, "publisher": book.publisher, "subject": book.subject, "place": book.place, "number": book.number, "remarks": book.remarks})
         return result
         
     # 本の情報を更新する
@@ -423,7 +425,7 @@ class Database:
         if books:
             result = []
             for book in books:
-                result.append({"isbn": book.isbn_10, "タイトル": book.title, "著者": book.author, "出版社": book.publisher, "件名標目": book.subject, "保管場所": book.place})
+                result.append({"isbn": book.isbn_10, "タイトル": book.title, "著者": book.author, "出版社": book.publisher, "件名標目": book.subject, "保管場所": book.place, "所持数": book.number, "備考": book.remarks})
             return result
         else:
             self.logger.error(f"Failed to create download data")
